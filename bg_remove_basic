@@ -1,0 +1,44 @@
+import cv2
+import numpy as np
+
+cap = cv2.VideoCapture(0)
+cap.set(3, 1280)
+cap.set(4, 720)
+# cap.set(10, 100)
+imgArea = 640 * 480
+maxArea = 0.95 * imgArea
+minArea = 0.0005 * imgArea
+
+while True:
+    success, img = cap.read()
+    if success:
+        imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        imgCanny = cv2.Canny(imgGray, 15,150)
+        imgCanny = cv2.dilate(imgCanny, None)
+        imgCanny = cv2.erode(imgCanny, None)
+        cv2.imshow("Edge detection", imgCanny)
+        contourInfo = [(c, cv2.contourArea(c),) for c in
+                       cv2.findContours(imgCanny, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)[0]]
+        mask = np.zeros(imgCanny.shape, dtype=np.uint8)
+        for contour in contourInfo:
+            # If the contour is either smaller than the minArea or
+            # bigger than the maxArea then it is not a part of foreground
+            if minArea < contour[1] < maxArea:
+                # Add contour to mask
+                mask = cv2.fillConvexPoly(mask, contour[0], 255)
+        mask = cv2.dilate(mask, None, iterations=10)
+        mask = cv2.erode(mask, None, iterations=10)
+        mask = cv2.GaussianBlur(mask, (1, 1), 0)
+        mask_stack = np.dstack([mask] * 3)
+        mask_stack = mask_stack.astype('float32') / 255.0
+        img = img.astype('float32') / 255.0
+        # blending mask and image
+        masked = (mask_stack * img) + ((1 - mask_stack) * (0.0, 0.0, 0.0))
+        masked = (masked * 255).astype('uint8')
+        cv2.imshow("Webcam Input", img)
+        cv2.imshow("With Background blur", masked)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    else:
+        break
