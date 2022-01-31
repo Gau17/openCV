@@ -1,0 +1,26 @@
+import cvzone
+import mediapipe
+import cv2
+from cvzone.SelfiSegmentationModule import SelfiSegmentation
+
+cap = cv2.VideoCapture(0)
+cap.set(3, 640)
+cap.set(4, 480)
+cap.set(cv2.CAP_PROP_FPS, 60)
+segmentor = SelfiSegmentation()
+fps = cvzone.FPS()
+
+while True:
+    success, img = cap.read()
+    img = cv2.flip(img,1)
+    if success:
+        imgOut = segmentor.removeBG(img, (211, 211, 211), threshold=0.2)
+        imgStacked = cvzone.stackImages([img, imgOut], 2, 1)
+        _, imgStacked = fps.update(imgStacked)
+
+        cv2.imshow("Webcam input",imgStacked)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    else:
+        break
