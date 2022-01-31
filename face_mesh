@@ -1,0 +1,29 @@
+import cv2
+import mediapipe as mp
+import cvzone
+
+cap = cv2.VideoCapture(0)
+fps = cvzone.FPS()
+mpDraw = mp.solutions.drawing_utils
+mpFaceMesh = mp.solutions.face_mesh
+faceMesh = mpFaceMesh.FaceMesh(max_num_faces=2)
+drawSpec = mpDraw.DrawingSpec(thickness=1, circle_radius=1)
+while True:
+    success, img = cap.read()
+    if success:
+        img = cv2.flip(img, 1)
+        imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        results = faceMesh.process(imgRGB)
+        if results.multi_face_landmarks:
+            for faceLMS in results.multi_face_landmarks:
+                imgHeight, imgWidth, _ = img.shape
+                xCoord = faceLMS.landmark[0].x * imgWidth
+                yCoord = faceLMS.landmark[0].y * imgHeight
+                mpDraw.draw_landmarks(img, faceLMS, mpFaceMesh.FACEMESH_TESSELATION, drawSpec, drawSpec)
+
+        _, img = fps.update(img)
+        cv2.imshow("Webcam input", img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    else:
+        break
